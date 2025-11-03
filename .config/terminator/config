@@ -1,0 +1,62 @@
+[global_config]
+[keybindings]
+[profiles]
+  [[dracula-pinterest]]
+    # Hybrid Dracula + modern Pinterest-inspired palette
+    palette = "#1e1f29:#ff4d6d:#50fa7b:#ffd166:#4895ef:#b5179e:#4cc9f0:#f8f9fa:#4b4d59:#ff6b81:#69ff94:#ffe066:#5ec8ff:#ff79c6:#8be9fd:#ffffff"
+    background_color = "#22232b"
+    foreground_color = "#f8f9fa"
+    cursor_color = "#f8f9fa"
+    use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
+    font = MesloLGS NF 12
+    scrollbar_position = hidden
+    show_titlebar = False
+  [[dracula]]
+    palette = "#000000:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#bbbbbb:#44475a:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#ffffff"
+    background_color = "#282a36"
+    background_darkness = 0.95
+    background_type = transparent
+    cursor_color = "#f8f8f2"
+    foreground_color = "#f8f8f2"
+    use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
+    font = MesloLGS NF 12
+    scrollbar_position = hidden
+    show_titlebar = False
+  [[default]]
+    use_custom_command = False
+    custom_command =
+    palette = "#000000:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#bbbbbb:#44475a:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#ffffff"
+    background_color = "#282a36"
+    foreground_color = "#f8f8f2"
+    scrollbar_position = hidden
+    show_titlebar = False
+    use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
+    font = MesloLGS NF 12
+[layouts]
+  [[default]]
+    [[[child1]]]
+      type = Terminal
+      profile = dracula-pinterest
+    [[[window0]]]
+      type = Window
+      parent = ""
+      child = child1
+[plugins]

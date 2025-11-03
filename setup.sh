@@ -161,6 +161,22 @@ apply_dracula_terminator() {
 [global_config]
 [keybindings]
 [profiles]
+  [[dracula-pinterest]]
+    # Hybrid Dracula + modern Pinterest-inspired palette
+    palette = "#1e1f29:#ff4d6d:#50fa7b:#ffd166:#4895ef:#b5179e:#4cc9f0:#f8f9fa:#4b4d59:#ff6b81:#69ff94:#ffe066:#5ec8ff:#ff79c6:#8be9fd:#ffffff"
+    background_color = "#22232b"
+    foreground_color = "#f8f9fa"
+    cursor_color = "#f8f9fa"
+    use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
+    font = MesloLGS NF 12
+    scrollbar_position = hidden
+    show_titlebar = False
   [[dracula]]
     palette = "#000000:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#bbbbbb:#44475a:#ff5555:#50fa7b:#f1fa8c:#bd93f9:#ff79c6:#8be9fd:#ffffff"
     background_color = "#282a36"
@@ -169,6 +185,12 @@ apply_dracula_terminator() {
     cursor_color = "#f8f8f2"
     foreground_color = "#f8f8f2"
     use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
     font = MesloLGS NF 12
     scrollbar_position = hidden
     show_titlebar = False
@@ -181,12 +203,18 @@ apply_dracula_terminator() {
     scrollbar_position = hidden
     show_titlebar = False
     use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
     font = MesloLGS NF 12
 [layouts]
   [[default]]
     [[[child1]]]
       type = Terminal
-      profile = dracula
+      profile = dracula-pinterest
     [[[window0]]]
       type = Window
       parent = ""
@@ -194,7 +222,27 @@ apply_dracula_terminator() {
 [plugins]
 EOF
   else
-    warn "Existing Terminator config detected. Updating font and titlebar settings."
+    warn "Existing Terminator config detected. Updating color richness and font/titlebar settings."
+    # Ensure dracula-pinterest profile exists with the palette
+    if ! grep -q '^\s*\[\[dracula-pinterest\]\]' "$cfg_file"; then
+      cat >> "$cfg_file" << 'EOF'
+  [[dracula-pinterest]]
+    palette = "#1e1f29:#ff4d6d:#50fa7b:#ffd166:#4895ef:#b5179e:#4cc9f0:#f8f9fa:#4b4d59:#ff6b81:#69ff94:#ffe066:#5ec8ff:#ff79c6:#8be9fd:#ffffff"
+    background_color = "#22232b"
+    foreground_color = "#f8f9fa"
+    cursor_color = "#f8f9fa"
+    use_system_font = False
+    use_theme_colors = False
+    allow_bold = True
+    bold_is_bright = True
+    cursor_blink = True
+    scrollback_infinite = True
+    scrollback_lines = 20000
+    font = MesloLGS NF 12
+    scrollbar_position = hidden
+    show_titlebar = False
+EOF
+    fi
     # Ensure MesloLGS NF font is used
     if grep -q '^\s*font\s*=\s*' "$cfg_file"; then
       sed -i 's/^\(\s*font\s*=\s*\).*/\1MesloLGS NF 12/' "$cfg_file"
@@ -207,11 +255,53 @@ EOF
     else
       printf '\n  [[dracula]]\n    use_system_font = False\n  [[default]]\n    use_system_font = False\n' >> "$cfg_file"
     fi
+    # Ensure rich color options
+    for key in use_theme_colors allow_bold bold_is_bright cursor_blink scrollback_infinite; do
+      if grep -q "^\s*$key\s*=\s*" "$cfg_file"; then
+        sed -i "s/^\(\s*$key\s*=\s*\).*/\1$( [[ $key == scrollback_infinite ]] && echo True || echo True )/" "$cfg_file"
+      else
+        printf "\n  [[dracula]]\n    $key = True\n  [[default]]\n    $key = True\n" >> "$cfg_file"
+      fi
+    done
+    # Ensure high scrollback lines
+    if grep -q '^\s*scrollback_lines\s*=\s*' "$cfg_file"; then
+      sed -i 's/^\(\s*scrollback_lines\s*=\s*\).*/\120000/' "$cfg_file"
+    else
+      printf '\n  [[dracula]]\n    scrollback_lines = 20000\n  [[default]]\n    scrollback_lines = 20000\n' >> "$cfg_file"
+    fi
     # Ensure titlebar hidden
     if grep -q '^\s*show_titlebar\s*=\s*' "$cfg_file"; then
       sed -i 's/^\(\s*show_titlebar\s*=\s*\).*/\1False/' "$cfg_file"
     else
       printf '\n  [[dracula]]\n    show_titlebar = False\n  [[default]]\n    show_titlebar = False\n' >> "$cfg_file"
+    fi
+    # Switch default layout to dracula-pinterest profile
+    if grep -q '^\s*profile\s*=\s*dracula\b' "$cfg_file"; then
+      sed -i 's/^\(\s*profile\s*=\s*\)dracula\b/\1dracula-pinterest/' "$cfg_file"
+    elif ! grep -q '^\s*profile\s*=\s*dracula-pinterest\b' "$cfg_file"; then
+      # If no profile assignment found under layouts, append a basic layout
+      cat >> "$cfg_file" << 'EOF'
+[layouts]
+  [[default]]
+    [[[child1]]]
+      type = Terminal
+      profile = dracula-pinterest
+    [[[window0]]]
+      type = Window
+      parent = ""
+      child = child1
+EOF
+    fi
+  fi
+}
+
+set_truecolor_env() {
+  # Ensure truecolor is used in shells for richer colors in apps like nvim
+  if [[ -f "$HOME/.zshrc" ]]; then
+    grep -q '^export COLORTERM=truecolor' "$HOME/.zshrc" || printf '\nexport COLORTERM=truecolor\n' >> "$HOME/.zshrc"
+    if ! grep -q '^export TERM=xterm-256color' "$HOME/.zshrc"; then
+      # Only set TERM if not already set by user; 256color is broadly compatible
+      printf 'export TERM=xterm-256color\n' >> "$HOME/.zshrc"
     fi
   fi
 }
@@ -334,6 +424,7 @@ main() {
   install_nerd_fonts
   apply_dracula_terminator
   make_terminator_default
+  set_truecolor_env
   build_neovim_from_source
   install_lazyvim
   setup_ssh_keys
