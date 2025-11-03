@@ -10,8 +10,8 @@ Automation scripts to set up a fresh Linux machine (Debian/Ubuntu). Includes Ter
 Runs everything non-interactively: installs packages, sets Zsh default, configures Terminator (Dracula + no titlebar), installs fonts, builds Neovim, and installs LazyVim.
 
 ```bash
-chmod +x /home/ashok/new-pc/setup.sh
-/home/ashok/new-pc/setup.sh
+chmod +x ./setup.sh
+./setup.sh
 ```
 
 What it does:
@@ -38,8 +38,8 @@ sudo update-alternatives --set x-terminal-emulator /usr/bin/terminator
 Standalone script to generate and configure SSH keys. It safely creates `id_ed25519`, configures `~/.ssh/config`, starts `ssh-agent`, adds the key, and prints/copies the public key.
 
 ```bash
-chmod +x /home/ashok/new-pc/setup-ssh.sh
-/home/ashok/new-pc/setup-ssh.sh --email you@example.com
+chmod +x ./setup-ssh.sh
+./setup-ssh.sh --email you@example.com
 ```
 
 Options:
@@ -51,7 +51,7 @@ Options:
 Common tasks:
 ```bash
 # Regenerate clean key with your email
-/home/ashok/new-pc/setup-ssh.sh --email you@example.com --force
+./setup-ssh.sh --email you@example.com --force
 
 # Recover a missing public key from an existing private key
 ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub && chmod 644 ~/.ssh/id_ed25519.pub
@@ -62,12 +62,12 @@ ssh -T git@github.com
 
 ### 3) Initialize and push this repo
 ```bash
-cd /home/ashok/new-pc
+cd /path/to/this/repo
 git init
 git add -A
 git commit -m "Initial commit: setup scripts and config"
 git branch -M main
-git remote add origin git@github.com:<your-user>/new-pc.git
+git remote add origin git@github.com:<your-user>/<your-repo>.git
 git push -u origin main
 ```
 
