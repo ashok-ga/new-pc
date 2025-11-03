@@ -71,10 +71,10 @@ git remote add origin git@github.com:<your-user>/<your-repo>.git
 git push -u origin main
 ```
 
-### 4) Cursor configuration (optional)
-Set MesloLGS Nerd Font for integrated terminal in Cursor:
+### 4) VS Code configuration (optional)
+Set MesloLGS Nerd Font for integrated terminal in VS Code:
 
-Edit `~/.config/Cursor/User/settings.json` and add:
+Edit `settings.json` and add:
 ```json
 {
     "terminal.integrated.fontFamily": "MesloLGS NF"
