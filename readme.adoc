@@ -1,0 +1,174 @@
+= New PC Setup (Debian/Ubuntu)
+:toc: left
+:toclevels: 3
+:sectanchors:
+:sectnums:
+:source-highlighter: rouge
+
+Opinionated automation for setting up a fresh Debian/Ubuntu Linux machine: Zsh + Oh My Zsh + powerlevel10k, Terminator with a Dracula-based theme, Meslo Nerd Fonts, Neovim (stable) from source, and LazyVim. Includes SSH key setup.
+
+== What this repo does
+
+The main script (`setup.sh`) is designed to be run on a brand-new machine and will:
+
+* Install base packages via `apt-get` (including build tools).
+* Set Zsh as your default shell (best-effort).
+* Install Oh My Zsh, powerlevel10k, and a couple of Zsh plugins.
+* Download and install *MesloLGS Nerd Font* locally for best powerlevel10k visuals.
+* Write/update Terminator configuration at `~/.config/terminator/config` and set Terminator as the default terminal emulator.
+* Set terminal color env vars for better truecolor support in apps like Neovim.
+* Install Neovim by building from source (*stable*) if `nvim` is not already installed.
+* Install LazyVim starter into `~/.config/nvim` if that directory is empty.
+* Generate/configure an SSH ed25519 key in `~/.ssh` and print/copy the public key.
+
+[IMPORTANT]
+====
+This is a “machine bootstrap” script. It *will modify* files in your home directory (notably `~/.zshrc`, `~/.config/terminator/config`, and `~/.ssh/config`) and install system packages.
+====
+
+== Requirements
+
+* Debian/Ubuntu (or a derivative) with `apt-get`
+* Internet access
+* `sudo` access (unless you run as root)
+
+== Quickstart
+
+Clone/copy this repo onto the new machine, then run:
+
+[source,bash]
+----
+chmod +x ./setup.sh
+./setup.sh
+----
+
+After it finishes:
+
+* Restart your terminal (or log out/in) so the default shell change takes effect.
+* In Terminator, ensure the profile font is set to `MesloLGS NF` for correct icons/glyphs.
+
+== Before you run (recommended)
+
+* Skim the scripts: `setup.sh` and `setup-ssh.sh`.
+* If you already have a tuned `~/.zshrc`, `~/.ssh/config`, or Terminator config, back them up first:
+
+[source,bash]
+----
+cp -a ~/.zshrc ~/.zshrc.bak.$(date +%F) 2>/dev/null || true
+cp -a ~/.ssh/config ~/.ssh/config.bak.$(date +%F) 2>/dev/null || true
+cp -a ~/.config/terminator/config ~/.config/terminator/config.bak.$(date +%F) 2>/dev/null || true
+----
+
+== Script reference
+
+=== `setup.sh` (full machine setup)
+
+[source,bash]
+----
+./setup.sh
+----
+
+==== Packages installed (via apt)
+
+The script installs a baseline that supports building Neovim from source and daily CLI use, including:
+
+* `git`, `curl`, `wget`, `ca-certificates`
+* `build-essential`, `pkg-config`, `cmake`, `ninja-build`, `gettext`, etc.
+* `zsh`, `terminator`
+* `ripgrep`, `fd-find`
+
+==== Files and settings changed
+
+* `~/.zshrc`
+** Sets `ZSH_THEME="powerlevel10k/powerlevel10k"` (if not already)
+** Adds plugins: `zsh-autosuggestions`, `zsh-completions`
+** Adds `fpath` + `compinit` lines for completions
+** Adds `COLORTERM=truecolor`
+** Adds `TERM=xterm-256color` if you don’t already set `TERM`
+* `~/.local/share/fonts/`
+** Downloads MesloLGS Nerd Font variants
+* `~/.config/terminator/config`
+** Writes a Dracula-based profile and a default layout (or updates an existing config)
+* `~/.ssh/`
+** Creates `~/.ssh/id_ed25519` (no passphrase) if missing
+** Creates/updates `~/.ssh/config` with sensible defaults and GitHub/GitLab host blocks
+
+[CAUTION]
+====
+`setup.sh` generates an SSH key *without a passphrase* (`ssh-keygen ... -N ""`). If you prefer a passphrase, use `setup-ssh.sh` as a starting point and adjust it (or generate your key manually).
+====
+
+==== Neovim install behavior (important nuance)
+
+The script only builds Neovim from source if `nvim` is not found on your PATH.
+
+* If you already installed Neovim (even an older version), the source build is skipped.
+* If you want the script’s “build stable from source” behavior, uninstall/avoid any existing `nvim` first, or edit the script to force a rebuild.
+
+==== LazyVim install behavior
+
+LazyVim starter is only cloned when `~/.config/nvim` does not exist *or* is empty.
+If you already have an Neovim config, the script will leave it alone.
+
+=== `setup-ssh.sh` (standalone SSH key setup)
+
+This is the safer/cleaner way to handle SSH keys because it supports options like `--force` and `--email`.
+
+[source,bash]
+----
+chmod +x ./setup-ssh.sh
+./setup-ssh.sh --email you@example.com
+----
+
+Options:
+
+* `--email <addr>`: key comment (default: `"$USER@$HOSTNAME"`)
+* `--force`: overwrite `~/.ssh/id_ed25519` and regenerate
+* `--no-agent`: don’t start `ssh-agent` / don’t run `ssh-add`
+* `--no-copy`: don’t copy pubkey to clipboard (even if `xclip` exists)
+
+Common tasks:
+
+[source,bash]
+----
+# Regenerate a clean key with your email
+./setup-ssh.sh --email you@example.com --force
+
+# Recover a missing public key from an existing private key
+ssh-keygen -y -f ~/.ssh/id_ed25519 > ~/.ssh/id_ed25519.pub
+chmod 644 ~/.ssh/id_ed25519.pub
+
+# Test GitHub SSH
+ssh -T git@github.com
+----
+
+== VS Code (optional)
+
+To make powerlevel10k icons render properly in VS Code’s integrated terminal, set the terminal font:
+
+[source,json]
+----
+{
+  "terminal.integrated.fontFamily": "MesloLGS NF"
+}
+----
+
+== Troubleshooting
+
+* *Zsh isn’t the default shell after running*
+** Run `chsh -s "$(command -v zsh)"` and log out/in.
+* *powerlevel10k icons look wrong*
+** Ensure your terminal font is `MesloLGS NF` (Terminator profile + VS Code terminal).
+* *Clipboard copy in SSH setup doesn’t work*
+** Install `xclip`: `sudo apt-get install -y xclip`
+* *LazyVim didn’t install*
+** `~/.config/nvim` was not empty; move it aside and re-run the LazyVim step (or clone manually).
+* *Neovim wasn’t built from source*
+** You already had `nvim` installed; the script intentionally skips the build in that case.
+
+== Repo tips
+
+If you’re using GitHub and want the rendered README to be the AsciiDoc version, you can either:
+
+* Rename `readme.adoc` to `README.adoc`, or
+* Keep `README.md` as a pointer to `readme.adoc` (this repo currently does the latter).
