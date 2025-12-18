@@ -10,3 +10,12 @@ Quickstart:
 chmod +x ./setup.sh
 ./setup.sh
 ```
+
+Preview the AsciiDoc locally (for nicer navigation and colorful code blocks):
+
+```bash
+sudo apt-get update -y
+sudo apt-get install -y asciidoctor
+asciidoctor readme.adoc
+xdg-open readme.html
+```
