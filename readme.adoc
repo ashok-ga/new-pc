@@ -88,8 +88,8 @@ After it finishes:
 * In Terminator, ensure the profile font is set to `MesloLGS NF` for correct icons/glyphs.
 
 [%collapsible]
-==== Quick checks (copy/paste)
-
+.Quick checks (copy/paste)
+====
 [source,bash]
 ----
 # Confirm shell
