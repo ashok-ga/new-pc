@@ -1,0 +1,13 @@
+[project]
+name = "linux-setup-tui"
+version = "0.1.0"
+description = "A Python TUI for setting up a new Linux machine"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
+]
+
+[tool.uv]
+dev-dependencies = []
