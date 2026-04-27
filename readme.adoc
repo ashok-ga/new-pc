@@ -12,69 +12,100 @@
 :highlightjs-theme: atom-one-dark
 :listing-caption: Listing
 
-Opinionated automation for setting up a fresh Debian/Ubuntu Linux machine: Zsh + Oh My Zsh + powerlevel10k, Terminator with a Dracula-based theme, Meslo Nerd Fonts, Neovim (stable) from source, and LazyVim. Includes SSH key setup.
+Opinionated automation for setting up a fresh Debian/Ubuntu workstation: Zsh + Oh My Zsh + Powerlevel10k, Terminator with a Dracula-based theme, MesloLGS Nerd Font, Neovim (stable) built from source, LazyVim, and SSH keys / Git identity.
+
+Two installers are provided:
+
+[%autowidth,cols="1,2,3",options="header"]
+|===
+|Installer |Best for |Highlights
+
+|`install_tui.py` (recommended)
+|Day-to-day workstation setup
+|Rich TUI, preflight checks, dependency resolution, retries, idempotent re-runs, dry-run, full log file, per-step summary report. Auto-bootstraps `uv` and its own Python deps.
+
+|`setup.sh`
+|Minimal-deps environments, scripted CI, restricted shells
+|Plain `bash`. No external Python or `uv` required. Roughly the same end state.
+
+|`setup-ssh.sh`
+|Standalone SSH key/config provisioning
+|Just SSH: ed25519 keygen, `~/.ssh/config` defaults, agent + clipboard.
+|===
+
+[IMPORTANT]
+====
+This is a *machine bootstrap* tool. It will modify files in your home directory (notably `~/.zshrc`, `~/.config/terminator/config`, `~/.ssh/config`) and install system packages via `apt-get`. The TUI installer is idempotent — re-runs will not duplicate `.zshrc` entries — but it does still mutate state. Back up tuned config before running.
+====
+
+== Installed components
 
 [%autowidth,cols="1,1,3",options="header"]
 |===
 |Component |Result |Notes
 
 |Zsh + Oh My Zsh
-|✅ Installed + configured
-|Sets Zsh as default (best-effort) and updates `~/.zshrc`
+|Installed + configured
+|Sets Zsh as default (best-effort `chsh`); installs Oh My Zsh in unattended mode
 
-|powerlevel10k
-|✅ Installed
-|Theme set in `~/.zshrc`; make sure your terminal font supports Nerd glyphs
+|Powerlevel10k
+|Installed
+|Theme set in `~/.zshrc`; pair with the bundled Nerd Font for correct glyphs
 
 |MesloLGS Nerd Font
-|✅ Installed (user-local)
-|Downloaded to `~/.local/share/fonts/` and cached
+|Installed (user-local)
+|Downloaded to `~/.local/share/fonts/` and registered with `fc-cache`
 
 |Terminator
-|✅ Installed + themed
-|Writes/updates `~/.config/terminator/config` and sets Terminator as the default emulator
+|Installed + themed
+|Writes/refreshes `~/.config/terminator/config` with a Dracula profile; sets Terminator as the default `x-terminal-emulator`
 
 |Neovim (stable)
-|✅ Built from source (conditional)
-|Only built if `nvim` is not already on PATH
+|Built from source (conditional)
+|Skipped if `nvim` is already on PATH
 
 |LazyVim starter
-|✅ Installed (conditional)
-|Only cloned if `~/.config/nvim` is missing or empty
+|Installed (conditional)
+|Cloned only when `~/.config/nvim` is missing or empty
 
-|SSH keys
-|✅ Configured
-|Creates/updates `~/.ssh/config`; prints (and may copy) your public key
+|SSH keys + Git config
+|Configured
+|Generates ed25519 key (passphrase-free), writes `~/.ssh/config`, sets `git config --global user.{name,email}`, prints the public key (and copies via `xclip` when available)
 |===
-
-== What this repo does
-
-The main script (`setup.sh`) is designed to be run on a brand-new machine and will:
-
-* Install base packages via `apt-get` (including build tools).
-* Set Zsh as your default shell (best-effort).
-* Install Oh My Zsh, powerlevel10k, and a couple of Zsh plugins.
-* Download and install *MesloLGS Nerd Font* locally for best powerlevel10k visuals.
-* Write/update Terminator configuration at `~/.config/terminator/config` and set Terminator as the default terminal emulator.
-* Set terminal color env vars for better truecolor support in apps like Neovim.
-* Install Neovim by building from source (*stable*) if `nvim` is not already installed.
-* Install LazyVim starter into `~/.config/nvim` if that directory is empty.
-* Generate/configure an SSH ed25519 key in `~/.ssh` and print/copy the public key.
-
-[IMPORTANT]
-====
-This is a “machine bootstrap” script. It *will modify* files in your home directory (notably `~/.zshrc`, `~/.config/terminator/config`, and `~/.ssh/config`) and install system packages.
-====
 
 == Requirements
 
-* Debian/Ubuntu (or a derivative) with `apt-get`
-* Internet access
-* `sudo` access (unless you run as root)
+* Debian/Ubuntu (or derivative) with `apt-get`
+* Internet access (the TUI checks this in preflight)
+* `sudo` access — unless you run as `root`
+* Python 3.9+ already on the system (only for the TUI; the bootstrap will refuse older versions)
 
 == Quickstart
 
-Clone/copy this repo onto the new machine, then run:
+=== TUI installer (recommended)
+
+[source,bash]
+----
+chmod +x ./install_tui.py
+./install_tui.py
+----
+
+On first run, the script will:
+
+. Verify Python ≥ 3.9.
+. Install `uv` if missing (via the official `astral.sh/uv/install.sh`).
+. Re-exec itself under `uv run --script` so its inline PEP 723 dependencies (`rich`, `questionary`) are isolated from system Python.
+. Run preflight checks (Linux, `apt-get`, internet, sudo, free disk).
+. Show a checkbox picker for components, then a confirmation table.
+. Execute selected steps, streaming progress to the console and full output to a log file.
+. Print a summary table of `ok` / `skipped` / `failed` per step.
+
+After it finishes:
+
+* Restart your terminal (or log out / back in) so the default shell change takes effect.
+* In Terminator, the bundled profile already sets the font to `MesloLGS NF`.
+
+=== Bash installer (no Python / no uv)
 
 [source,bash]
 ----
@@ -82,122 +113,209 @@ chmod +x ./setup.sh
 ./setup.sh
 ----
 
-After it finishes:
+This is a single-file `bash` equivalent. It is not idempotent in the same way the TUI is — re-runs may append duplicate config blocks if you have already customized `~/.zshrc`.
 
-* Restart your terminal (or log out/in) so the default shell change takes effect.
-* In Terminator, ensure the profile font is set to `MesloLGS NF` for correct icons/glyphs.
+== `install_tui.py` reference
 
-[%collapsible]
-.Quick checks (copy/paste)
+=== Command-line flags
+
+[%autowidth,cols="1,3",options="header"]
+|===
+|Flag |Effect
+
+|`-c`, `--components <list>`
+|Comma-separated component keys; skips the interactive picker. Valid keys: `base`, `zsh`, `p10k`, `terminator`, `nvim`, `ssh`. Dependencies are auto-resolved.
+
+|`--name <str>`
+|Git `user.name`. Used by the `ssh` component.
+
+|`--email <addr>`
+|Git `user.email` and SSH key comment. Validated against a basic email regex.
+
+|`-y`, `--yes`
+|Non-interactive: assume "yes" to the confirmation prompt and skip name/email questions (use `--name`/`--email` instead).
+
+|`--dry-run`
+|Show the plan and trace what would happen without modifying the system. Network installs and `apt` calls are skipped; safe to run anywhere.
+
+|`-h`, `--help`
+|Standard argparse help.
+|===
+
+=== Common invocations
+
+[source,bash]
+----
+# Interactive — pick components from a checkbox list
+./install_tui.py
+
+# Preview only, no changes
+./install_tui.py --dry-run
+
+# Headless / scripted
+./install_tui.py -y -c base,zsh,p10k,terminator
+
+# Just SSH + Git identity, fully non-interactive
+./install_tui.py -y -c ssh --name "Ada Lovelace" --email "ada@example.com"
+
+# Rebuild a single component
+./install_tui.py -y -c terminator
+----
+
+=== Component dependencies
+
+The TUI declares dependencies between components and resolves them automatically. Selecting a leaf component pulls its prerequisites in:
+
+[%autowidth,cols="1,2",options="header"]
+|===
+|Component |Implies
+
+|`base`     |—
+|`zsh`      |`base`
+|`p10k`     |`zsh`, `base`
+|`terminator` |`base`
+|`nvim`     |`base`
+|`ssh`      |`base`
+|===
+
+When the resolver adds a missing dependency, it logs a warning so you can see what was added.
+
+=== Preflight checks
+
+Before any step runs, the TUI verifies:
+
+* Operating system is Linux.
+* `apt-get` is on PATH.
+* TCP to `github.com:443` succeeds (5 s timeout).
+* Either you are `root` or `sudo -n true` succeeds (passwordless sudo). If not, you'll be prompted for your password once at the start.
+* `$HOME` has at least 1 GB free.
+
+Fatal failures (no internet, no `apt-get`, etc.) abort the run with exit code `2`. A "sudo will prompt" condition is only a warning.
+
+=== Idempotency model
+
+* `.zshrc` blocks are guarded by marker comments (`# linux-setup-tui: zsh-completions fpath`, `# linux-setup-tui: truecolor`). Re-runs detect the marker and skip.
+* `plugins=(…)` is parsed and individual plugin names are added only when missing.
+* `ZSH_THEME=` is rewritten in place (or appended once if absent).
+* Terminator config is replaced wholesale only when content differs; otherwise reports "already up to date". Existing user-tuned configs are backed up to `config.bak.<unix-timestamp>` before overwrite.
+* `~/.ssh/config` is appended once, also marker-guarded.
+* Git clones use `git pull --ff-only` on subsequent runs.
+* Font downloads check destination size > 0; partial downloads are deleted and retried.
+
+=== Network resilience
+
+`git clone`, font downloads, and the Oh My Zsh installer all run through a `with_retries` helper: 3 attempts with exponential backoff (2 s, 3 s, 4.5 s). `curl` itself also retries 3 times via `--retry 3`. Failed retries are reported and the step is marked `failed` in the summary, but other steps continue.
+
+=== Logging
+
+Every command's full stdout/stderr is written to:
+
+[source]
+----
+~/.local/state/linux-setup-tui/install.log
+----
+
+Console output is intentionally terse — when a step fails, the last 10 lines of stderr are surfaced inline so you can decide whether to keep going. The full log is the source of truth for post-mortem.
+
+[TIP]
 ====
-[source,bash]
-----
-# Confirm shell
-echo "$SHELL"
-
-# Confirm fonts are installed
-fc-list | grep -i "MesloLGS NF" | head
-
-# Confirm nvim (if it was built/installed)
-command -v nvim && nvim --version | head -n1
-
-# Confirm Terminator config exists
-test -f ~/.config/terminator/config && echo "Terminator config: OK"
-
-# Confirm SSH key exists
-test -f ~/.ssh/id_ed25519.pub && ssh-keygen -lf ~/.ssh/id_ed25519.pub
-----
+After a failed run: `tail -n 200 ~/.local/state/linux-setup-tui/install.log`
 ====
 
-== Preview locally (with colors)
+=== Summary report
 
-GitHub renders AsciiDoc, but for the best *syntax highlighting colors* and navigation you can render it locally to HTML.
+At the end of every run (success or partial failure), the TUI prints a Rich table:
 
-[source,bash]
+[source]
 ----
-# Install (Debian/Ubuntu)
-sudo apt-get update -y
-sudo apt-get install -y asciidoctor
-
-# Render HTML (outputs ./readme.html)
-asciidoctor readme.adoc
-
-# Open it
-xdg-open readme.html
-----
-
-== Before you run (recommended)
-
-* Skim the scripts: `setup.sh` and `setup-ssh.sh`.
-* If you already have a tuned `~/.zshrc`, `~/.ssh/config`, or Terminator config, back them up first:
-
-[source,bash]
-----
-cp -a ~/.zshrc ~/.zshrc.bak.$(date +%F) 2>/dev/null || true
-cp -a ~/.ssh/config ~/.ssh/config.bak.$(date +%F) 2>/dev/null || true
-cp -a ~/.config/terminator/config ~/.config/terminator/config.bak.$(date +%F) 2>/dev/null || true
+                  Installation Summary
+┌────────────┬────────────┬──────────────────────┐
+│ Step       │ Status     │ Detail               │
+├────────────┼────────────┼──────────────────────┤
+│ base       │ ✓ ok       │                      │
+│ zsh        │ ✓ ok       │                      │
+│ p10k       │ ✓ ok       │                      │
+│ terminator │ ✓ ok       │                      │
+│ nvim       │ ✗ failed   │ build                │
+│ ssh        │ – skipped  │ no email             │
+└────────────┴────────────┴──────────────────────┘
 ----
 
-== Script reference
+Exit status is `0` if every step is `ok` or `skipped`; `1` if any step is `failed`; `2` for preflight failures; `130` if interrupted with Ctrl-C.
 
-=== `setup.sh` (full machine setup)
-
-[source,bash]
-----
-./setup.sh
-----
-
-==== Packages installed (via apt)
-
-The script installs a baseline that supports building Neovim from source and daily CLI use, including:
-
-* `git`, `curl`, `wget`, `ca-certificates`
-* `build-essential`, `pkg-config`, `cmake`, `ninja-build`, `gettext`, etc.
-* `zsh`, `terminator`
-* `ripgrep`, `fd-find`
-
-==== Files and settings changed
+=== Files modified
 
 [cols="1,4",options="header"]
 |===
-|Path |What `setup.sh` does
+|Path |Change
 
 |`~/.zshrc`
-|Sets `ZSH_THEME="powerlevel10k/powerlevel10k"` (if needed), appends plugins (`zsh-autosuggestions`, `zsh-completions`), configures `fpath`/`compinit`, and exports `COLORTERM=truecolor` (and `TERM=xterm-256color` if you don’t already set `TERM`).
+|Sets `ZSH_THEME`; adds `zsh-autosuggestions`, `zsh-completions` to the plugins list; appends marker-guarded `fpath` + `compinit` block; appends marker-guarded `COLORTERM=truecolor` block.
 
 |`~/.local/share/fonts/`
-|Downloads MesloLGS Nerd Font variants and runs `fc-cache`.
+|Downloads four `MesloLGS NF` `.ttf` files; runs `fc-cache -f`.
 
 |`~/.config/terminator/config`
-|Writes a Dracula-based profile + layout (or updates an existing config).
+|Writes Dracula profile + default layout. Backs up any pre-existing config to `config.bak.<timestamp>`.
 
-|`~/.ssh/id_ed25519`
-|Creates an ed25519 key if missing (no passphrase in `setup.sh`).
+|`~/.config/nvim/`
+|Clones the LazyVim starter (only if the directory is empty/missing). The starter's `.git` is removed so you can `git init` your own dotfiles.
+
+|`~/.local/src/neovim/`
+|Source checkout for the `nvim` build.
+
+|`~/.ssh/id_ed25519`, `id_ed25519.pub`
+|Generated if missing (no passphrase). Permissions set to 600 / 644.
 
 |`~/.ssh/config`
-|Creates/updates defaults under `Host *` plus GitHub/GitLab host blocks.
+|Marker-guarded block with `Host *` defaults and entries for `github.com` / `gitlab.com`.
+
+|`~/.gitconfig` (global)
+|Sets `user.name` and `user.email` when supplied.
+
+|`~/.local/state/linux-setup-tui/install.log`
+|Run log, appended on every invocation.
 |===
+
+== `setup.sh` reference
+
+The bash installer mirrors the TUI's end state but with simpler control flow and no Python dependency. Use it on locked-down environments or in CI where `uv` is unwelcome.
+
+[source,bash]
+----
+chmod +x ./setup.sh
+./setup.sh
+----
+
+=== Packages installed (apt)
+
+Baseline supports building Neovim from source and daily CLI use:
+
+* `git`, `curl`, `wget`, `ca-certificates`
+* `build-essential`, `pkg-config`, `cmake`, `ninja-build`, `gettext`, `libtool`, `libtool-bin`, `autoconf`, `automake`
+* `zsh`, `terminator`, `fonts-powerline`
+* `ripgrep`, `fd-find`
+
+=== Files modified
+
+The same set of paths as the TUI, with a couple of caveats:
+
+* The bash version's `.zshrc` edits are *not* marker-guarded; running it multiple times after manual edits can append duplicates.
+* Terminator config is updated in-place via targeted `sed` edits when an existing config is detected, instead of full overwrite.
+
+=== Caveats
 
 [CAUTION]
 ====
-`setup.sh` generates an SSH key *without a passphrase* (`ssh-keygen ... -N ""`). If you prefer a passphrase, use `setup-ssh.sh` as a starting point and adjust it (or generate your key manually).
+`setup.sh` generates an SSH key *without a passphrase*. If you want a passphrase, use `setup-ssh.sh` (or generate manually with `ssh-keygen`) and skip the SSH portion of `setup.sh`.
 ====
 
-==== Neovim install behavior (important nuance)
+* Already have `nvim` on PATH? The build is skipped — uninstall first if you want the source build.
+* Already have `~/.config/nvim/` populated? LazyVim install is skipped.
 
-The script only builds Neovim from source if `nvim` is not found on your PATH.
+== `setup-ssh.sh` reference
 
-* If you already installed Neovim (even an older version), the source build is skipped.
-* If you want the script’s “build stable from source” behavior, uninstall/avoid any existing `nvim` first, or edit the script to force a rebuild.
-
-==== LazyVim install behavior
-
-LazyVim starter is only cloned when `~/.config/nvim` does not exist *or* is empty.
-If you already have an Neovim config, the script will leave it alone.
-
-=== `setup-ssh.sh` (standalone SSH key setup)
-
-This is the safer/cleaner way to handle SSH keys because it supports options like `--force` and `--email`.
+Standalone SSH provisioning. Useful when you only need keys.
 
 [source,bash]
 ----
@@ -205,14 +323,18 @@ chmod +x ./setup-ssh.sh
 ./setup-ssh.sh --email you@example.com
 ----
 
-Options:
+[%autowidth,cols="1,3",options="header"]
+|===
+|Flag |Effect
 
-* `--email <addr>`: key comment (default: `"$USER@$HOSTNAME"`)
-* `--force`: overwrite `~/.ssh/id_ed25519` and regenerate
-* `--no-agent`: don’t start `ssh-agent` / don’t run `ssh-add`
-* `--no-copy`: don’t copy pubkey to clipboard (even if `xclip` exists)
+|`--email <addr>` |Comment baked into the key (default: `$USER@$HOSTNAME`)
+|`--force`        |Overwrite an existing `~/.ssh/id_ed25519`
+|`--no-agent`     |Skip starting `ssh-agent` and `ssh-add`
+|`--no-copy`      |Do not pipe the public key to the clipboard, even if `xclip` is present
+|`-h`, `--help`   |Show help
+|===
 
-Common tasks:
+Common operations:
 
 [source,bash]
 ----
@@ -227,9 +349,51 @@ chmod 644 ~/.ssh/id_ed25519.pub
 ssh -T git@github.com
 ----
 
+== Before you run (recommended)
+
+Skim the scripts you intend to invoke. If you already have a tuned `~/.zshrc`, `~/.ssh/config`, or Terminator config, back them up:
+
+[source,bash]
+----
+cp -a ~/.zshrc ~/.zshrc.bak.$(date +%F) 2>/dev/null || true
+cp -a ~/.ssh/config ~/.ssh/config.bak.$(date +%F) 2>/dev/null || true
+cp -a ~/.config/terminator/config ~/.config/terminator/config.bak.$(date +%F) 2>/dev/null || true
+----
+
+The TUI also takes its own `.bak.<timestamp>` snapshot of Terminator config when it overwrites, but for everything else the responsibility is yours.
+
+== Verify the installation
+
+[%collapsible]
+.Quick checks (copy/paste)
+====
+[source,bash]
+----
+# Confirm shell
+echo "$SHELL"
+zsh --version
+
+# Confirm fonts are installed
+fc-list | grep -i "MesloLGS NF" | head
+
+# Confirm nvim
+command -v nvim && nvim --version | head -n1
+
+# Confirm Terminator config exists
+test -f ~/.config/terminator/config && echo "Terminator config: OK"
+
+# Confirm SSH key + fingerprint
+test -f ~/.ssh/id_ed25519.pub && ssh-keygen -lf ~/.ssh/id_ed25519.pub
+
+# Confirm git identity
+git config --global --get user.name
+git config --global --get user.email
+----
+====
+
 == VS Code (optional)
 
-To make powerlevel10k icons render properly in VS Code’s integrated terminal, set the terminal font:
+To make Powerlevel10k icons render in VS Code's integrated terminal:
 
 [source,json]
 ----
@@ -238,46 +402,26 @@ To make powerlevel10k icons render properly in VS Code’s integrated terminal, 
 }
 ----
 
-== Troubleshooting
-
-* *Zsh isn’t the default shell after running*
-** Run `chsh -s "$(command -v zsh)"` and log out/in.
-* *powerlevel10k icons look wrong*
-** Ensure your terminal font is `MesloLGS NF` (Terminator profile + VS Code terminal).
-* *Clipboard copy in SSH setup doesn’t work*
-** Install `xclip`: `sudo apt-get install -y xclip`
-* *LazyVim didn’t install*
-** `~/.config/nvim` was not empty; move it aside and re-run the LazyVim step (or clone manually).
-* *Neovim wasn’t built from source*
-** You already had `nvim` installed; the script intentionally skips the build in that case.
-
-== Repo tips
-
-If you’re using GitHub and want the rendered README to be the AsciiDoc version, you can either:
-
-* Rename `readme.adoc` to `README.adoc`, or
-* Keep `README.md` as a pointer to `readme.adoc` (this repo currently does the latter).
-
 == Customization
 
 === Terminator profile + font
 
-The script writes a Terminator profile named `dracula-pinterest` and sets:
+The TUI / `setup.sh` write a Terminator profile named `dracula-pinterest` with:
 
 * Font: `MesloLGS NF 12`
 * Titlebar: hidden
-* Scrollback: infinite (with a large line buffer)
+* Scrollback: infinite (with a 20 000-line buffer)
 
-If you want a different font size, update `~/.config/terminator/config`:
+To change the font size, edit `~/.config/terminator/config`:
 
 [source,ini]
 ----
-font = MesloLGS NF 12
+font = MesloLGS NF 14
 ----
 
-=== powerlevel10k configuration
+=== Powerlevel10k configuration
 
-After the first run, launch a new terminal and run:
+After the first run, open a new terminal and run:
 
 [source,bash]
 ----
@@ -286,5 +430,83 @@ p10k configure
 
 [NOTE]
 ====
-If glyphs look wrong, it’s almost always a *font* issue. Set your terminal (and VS Code terminal) to `MesloLGS NF`.
+If glyphs look like boxes / question marks, it's almost always a *font* issue. Set your terminal (and VS Code terminal) to `MesloLGS NF`.
 ====
+
+== Troubleshooting
+
+=== TUI bootstrap fails
+
+* "Python 3.9+ required" — the TUI requires modern Python. Install with `sudo apt-get install -y python3` and retry.
+* "Failed to install uv" — check internet and TLS. You can install `uv` manually first: see https://docs.astral.sh/uv/getting-started/installation/.
+* "uv installed but not found on PATH" — add `~/.local/bin` to your `PATH`, then re-run.
+
+=== A step failed mid-run
+
+. Read the last 10 lines of stderr printed under the step.
+. Open the full log: `~/.local/state/linux-setup-tui/install.log`.
+. Re-run only the affected component (the TUI is idempotent for everything that already succeeded):
++
+[source,bash]
+----
+./install_tui.py -y -c nvim
+----
+
+=== Zsh isn't the default shell after running
+
+[source,bash]
+----
+chsh -s "$(command -v zsh)"
+----
+
+Then log out and back in.
+
+=== Powerlevel10k icons look wrong
+
+Set the terminal font to `MesloLGS NF`. In Terminator: Preferences → Profiles → Font.
+
+=== `xclip` not installed
+
+The TUI installs `xclip` as part of the `base` component. If you ran without `base`:
+
+[source,bash]
+----
+sudo apt-get install -y xclip
+----
+
+=== LazyVim didn't install
+
+The installer skips LazyVim when `~/.config/nvim` is non-empty. To start fresh:
+
+[source,bash]
+----
+mv ~/.config/nvim ~/.config/nvim.bak.$(date +%F)
+./install_tui.py -y -c nvim
+----
+
+=== Neovim wasn't built from source
+
+`nvim` was already on PATH. To force a source build, remove the existing binary first (`sudo apt-get remove neovim` and/or remove anything in `~/.local/bin/nvim`) and re-run.
+
+=== Preflight: "No internet connectivity"
+
+The check opens a TCP connection to `github.com:443`. If you're behind a corporate proxy, set `HTTPS_PROXY` and re-run, or run with `--dry-run` to see the planned actions without network calls.
+
+== Preview this README locally
+
+GitHub renders AsciiDoc, but for the best syntax highlighting and navigation, render to HTML:
+
+[source,bash]
+----
+sudo apt-get update -y
+sudo apt-get install -y asciidoctor
+
+asciidoctor readme.adoc
+xdg-open readme.html
+----
+
+== Repo conventions
+
+* `README.md` is a thin pointer to this AsciiDoc.
+* If you'd rather GitHub render this file as the project README, rename it to `README.adoc`.
+* Logs are written under `$XDG_STATE_HOME` (defaults to `~/.local/state/`) so they don't pollute `$HOME`.
